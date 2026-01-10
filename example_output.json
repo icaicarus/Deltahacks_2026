@@ -1,0 +1,24 @@
+{
+  "subtasks": [
+    {
+      "name": "Check fuel injection system",
+      "description": "Check Fuel",
+      "color": "red",
+      "distance": 1
+    },
+    {
+      "name": "Replace worn spark plugs",
+      "description": "Replace Plugs",
+      "color": "blue",
+      "distance": 3
+    },
+    {
+      "name": "Tighten timing belt",
+      "description": "Tighten Belt",
+      "color": "green",
+      "distance": 2
+    }
+  ],
+  "parent_id": 102,
+  "subtasks_type": "planet"
+}
