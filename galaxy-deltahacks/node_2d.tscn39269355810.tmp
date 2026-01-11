@@ -1,20 +1,10 @@
-[gd_scene load_steps=19 format=3 uid="uid://c3nvgwgsver30"]
+[gd_scene load_steps=17 format=3 uid="uid://c3nvgwgsver30"]
 
 [ext_resource type="Script" uid="uid://cb3svi8k6kypx" path="res://node_2d.gd" id="1_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://ciikjbtna226u" path="res://sprite_sheet (1).png" id="4_0hol4"]
 [ext_resource type="PackedScene" uid="uid://cssi8y5ygyqng" path="res://sun.tscn" id="4_kdubu"]
 [ext_resource type="Script" uid="uid://c7xtn6vxwofc6" path="res://control.gd" id="4_q6r6c"]
 [ext_resource type="PackedScene" uid="uid://drrpqsfb514wh" path="res://moon.tscn" id="5_d21ai"]
-
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_q6r6c"]
-radius = 392.0
-height = 784.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q6r6c"]
-bg_color = Color(0.48811483, 0.16757944, 0.4704128, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdubu"]
-bg_color = Color(0.5720758, 0.26022878, 0.39661103, 1)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_q6r6c"]
 atlas = ExtResource("4_0hol4")
@@ -87,6 +77,10 @@ animations = [{
 "speed": 3.0
 }]
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_q6r6c"]
+radius = 392.0
+height = 784.0
+
 [node name="Node2D" type="Node2D"]
 script = ExtResource("1_q6r6c")
 
@@ -125,37 +119,13 @@ offset_bottom = 167.0
 
 [node name="HTTPRequest" type="HTTPRequest" parent="CanvasLayer/Control"]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CanvasLayer/Control"]
-position = Vector2(1094, 790)
-shape = SubResource("CapsuleShape2D_q6r6c")
-
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer"]
-offset_right = 554.0
-offset_bottom = 789.0
-
-[node name="Panel" type="Panel" parent="CanvasLayer/MarginContainer"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_q6r6c")
-
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/MarginContainer/Panel"]
-layout_mode = 0
-offset_left = 30.0
-offset_top = 15.0
-offset_right = 516.0
-offset_bottom = 755.0
-
-[node name="Panel" type="Panel" parent="CanvasLayer/MarginContainer/Panel/MarginContainer"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_kdubu")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MarginContainer/Panel/MarginContainer"]
-layout_mode = 2
-
 [node name="AnimatedSprite2D2" parent="." instance=ExtResource("5_d21ai")]
+visible = false
 position = Vector2(345, 226)
 frame_progress = 0.6694021
 
 [node name="sun" parent="." instance=ExtResource("4_kdubu")]
+visible = false
 position = Vector2(236, 255)
 frame_progress = 0.89232755
 
@@ -164,4 +134,8 @@ position = Vector2(1061.5001, 804.99994)
 scale = Vector2(2.4013672, 1.5761718)
 sprite_frames = SubResource("SpriteFrames_akb8o")
 animation = &"new_animation"
-frame_progress = 0.6552851
+frame_progress = 0.9916018
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(1094, 790)
+shape = SubResource("CapsuleShape2D_q6r6c")
