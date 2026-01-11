@@ -11,5 +11,12 @@ config_version=5
 [application]
 
 config/name="Galaxy_Deltahacks"
+run/main_scene="uid://c3nvgwgsver30"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=2000
+window/size/viewport_height=900
+window/stretch/aspect="expand"
