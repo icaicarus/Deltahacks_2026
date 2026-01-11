@@ -49,15 +49,17 @@ async def generate_solar_system(request: GodotTaskRequest):
     Each subtask must have:
     - 'name': The full task title.
     - 'description': A detailed paragraph describing the tasks and any resources needed to complete it.
-    - 'duration': How much time in days will it take to complete the task.
+    - 'duration': How many days will it take to complete the task. This should be a floating point number.
     
-    Format:
+    Format (JSON):
     {{
       "subtasks": [
         {{ "name": "...", "description": "...", "duration": "..." }},
         ...
       ]
     }}
+
+    Nothing else should be sent except this JSON output.
     """
 
     try:
