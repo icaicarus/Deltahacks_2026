@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types  # For schema configuration
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -8,13 +9,13 @@ from dotenv import load_dotenv
 # --- CONFIGURATION ---
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found in .env file")
 
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found in .env file")
 
-genai.configure(api_key=api_key)
-# We use flash for high speed and lower cost
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = genai.Client(api_key=api_key)
 
 app = FastAPI()
 
@@ -33,6 +34,39 @@ def get_child_type(parent_type: str) -> str:
     }
     return mapping.get(parent_type.lower(), "planet")
 
+def get_valid_ai_json(prompt, max_retries=3):
+    """
+    Calls Gemini using the new SDK and verifies JSON format.
+    Retries up to max_retries if logic or format fails.
+    """
+    for attempt in range(max_retries):
+        try:
+            print(f"AI Attempt {attempt + 1}...")
+            
+            # New SDK call format
+            response = client.models.generate_content(
+                model="gemini-3-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            
+            # Parse the text response
+            data = json.loads(response.text)
+            
+            # Validation: Ensure it contains the list we need
+            if "subtasks" in data and isinstance(data["subtasks"], list):
+                print("Successfully received valid JSON.")
+                return data
+            else:
+                print("Missing 'subtasks' list. Retrying...")
+                
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed with error: {e}")
+            
+    return None
+
 # --- MAIN ENDPOINT ---
 @app.post("/generate")
 async def generate_solar_system(request: GodotTaskRequest):
@@ -49,39 +83,39 @@ async def generate_solar_system(request: GodotTaskRequest):
     Each subtask must have:
     - 'name': The full task title.
     - 'description': A detailed paragraph describing the tasks and any resources needed to complete it.
-    - 'duration': How much time in days will it take to complete the task.
+    - 'duration': How many days will it take to complete the task. This should be a floating point number.
     
-    Format:
+    Format (JSON):
     {{
       "subtasks": [
         {{ "name": "...", "description": "...", "duration": "..." }},
         ...
       ]
     }}
-    """
 
-    try:
-        # Request JSON specifically from Gemini
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
+    Nothing else should be sent except this JSON output.
+    """
+    # Convert string response to Python dictionary
+    ai_data = get_valid_ai_json(prompt, max_retries=5)
+
+    if ai_data is None:
+    # If we failed all 5 times, return a 500 error to Godot
+        raise HTTPException(
+            status_code=500, 
+            detail="AI failed to generate a valid task structure after 5 attempts."
         )
-        
-        # Convert string response to Python dictionary
-        ai_data = json.loads(response.text)
-        
+    
+    try:
         final_output = validate_and_correct_tasks(
             ai_data, 
             request.parent_id, 
             child_type
         )
-
-        # 3. Send the CORRECTED data back to Godot
         return final_output
 
     except Exception as e:
-        print(f"Error calling Gemini: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error in logic_processor: {e}")
+        raise HTTPException(status_code=500, detail="Error in logic processing script.")
 
 if __name__ == "__main__":
     import uvicorn
