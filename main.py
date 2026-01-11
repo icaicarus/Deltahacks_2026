@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types  # For schema configuration
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -8,13 +9,13 @@ from dotenv import load_dotenv
 # --- CONFIGURATION ---
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found in .env file")
 
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found in .env file")
 
-genai.configure(api_key=api_key)
-# We use flash for high speed and lower cost
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = genai.Client(api_key=api_key)
 
 app = FastAPI()
 
@@ -33,36 +34,37 @@ def get_child_type(parent_type: str) -> str:
     }
     return mapping.get(parent_type.lower(), "planet")
 
-def get_valid_ai_json(prompt, max_retries=5):
+def get_valid_ai_json(prompt, max_retries=3):
     """
-    Calls Gemini and verifies the output. 
-    If it's not valid JSON or missing 'subtasks', it retries.
+    Calls Gemini using the new SDK and verifies JSON format.
+    Retries up to max_retries if logic or format fails.
     """
     for attempt in range(max_retries):
         try:
             print(f"AI Attempt {attempt + 1}...")
             
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json"}
+            # New SDK call format
+            response = client.models.generate_content(
+                model="gemini-3-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
             )
             
-            # 1. Attempt to parse the string into a dictionary
+            # Parse the text response
             data = json.loads(response.text)
             
-            # 2. Check if the required 'subtasks' key exists
+            # Validation: Ensure it contains the list we need
             if "subtasks" in data and isinstance(data["subtasks"], list):
                 print("Successfully received valid JSON.")
                 return data
             else:
-                print("JSON received, but 'subtasks' key is missing or wrong format.")
+                print("Missing 'subtasks' list. Retrying...")
                 
-        except json.JSONDecodeError:
-            print("AI returned invalid JSON syntax. Retrying...")
         except Exception as e:
-            print(f"Unexpected error during AI generation: {e}")
-
-    # If the loop finishes without returning, we failed 5 times
+            print(f"Attempt {attempt + 1} failed with error: {e}")
+            
     return None
 
 # --- MAIN ENDPOINT ---
