@@ -5,6 +5,7 @@ from google.genai import types  # For schema configuration
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from create_godot_output import validate_and_correct_tasks
 
 # --- CONFIGURATION ---
 load_dotenv()
@@ -45,8 +46,8 @@ def get_valid_ai_json(prompt, max_retries=3):
             
             # New SDK call format
             response = client.models.generate_content(
-                model="gemini-3-flash",
-                contents=prompt,
+                model="gemini-2.5-flash",
+                contents=types.Part.from_text(text=prompt),
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
                 )
