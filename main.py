@@ -74,28 +74,46 @@ async def generate_solar_system(request: GodotTaskRequest):
     child_type = get_child_type(request.parent_type)
     
     # The prompt forces Gemini to behave as a structured data generator
+    scale_hint = {
+        "blackhole": "major project phases",
+        "star": "specific actionable tasks",
+        "planet": "micro-steps and checklists"
+    }.get(request.parent_type, "tasks")
+
     prompt = f"""
-    You are a solar-system productivity architect. 
-    The user wants to break down a task into sub-elements.
+    ROLE: You are an expert Project Management Architect specializing in granular task decomposition.
     
-    Parent Task: "{request.task_description}"
+    CONTEXT: The user is utilizing a 2D solar system productivity tool. 
+    You are breaking down a parent node of type '{request.parent_type}' into its constituent '{scale_hint}'.
     
-    Return a JSON object with a 'subtasks' list. 
-    Each subtask must have:
-    - 'name': The full task title.
-    - 'description': A detailed paragraph describing the tasks and any resources needed to complete it.
-    - 'duration': How many days will it take to complete the task. This should be a floating point number.
+    TASK TO BREAK DOWN: "{request.task_description}"
     
-    Format (JSON):
+    OBJECTIVE: Generate 3 to 7 logical, sequential, and highly specific sub-elements.
+    
+    CONSTRAINTS for JSON fields:
+    1. 'name': Clear, concise, and action-oriented (e.g., "Procure materials" instead of "Materials").
+    2. 'description': Provide a 3-4 sentence paragraph. It must include:
+       - The specific goal of this subtask.
+       - A list of necessary resources, tools, or software.
+       - A 'pro-tip' for efficiency.
+    3. 'duration': A realistic estimate in days. 
+       - Use 0.1 for tasks taking ~45 mins.
+       - Use 0.5 for half-days.
+       - Ensure the total duration of all subtasks is logically consistent with the parent task.
+
+    OUTPUT FORMAT:
+    Return ONLY a valid JSON object. Do not include markdown formatting, backticks, or preamble.
     {{
       "subtasks": [
-        {{ "name": "...", "description": "...", "duration": "..." }},
-        ...
+        {{
+          "name": "String",
+          "description": "String",
+          "duration": Float
+        }}
       ]
     }}
-
-    Nothing else should be sent except this JSON output.
     """
+
     # Convert string response to Python dictionary
     ai_data = get_valid_ai_json(prompt, max_retries=5)
 
