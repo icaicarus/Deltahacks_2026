@@ -33,6 +33,38 @@ def get_child_type(parent_type: str) -> str:
     }
     return mapping.get(parent_type.lower(), "planet")
 
+def get_valid_ai_json(prompt, max_retries=5):
+    """
+    Calls Gemini and verifies the output. 
+    If it's not valid JSON or missing 'subtasks', it retries.
+    """
+    for attempt in range(max_retries):
+        try:
+            print(f"AI Attempt {attempt + 1}...")
+            
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            
+            # 1. Attempt to parse the string into a dictionary
+            data = json.loads(response.text)
+            
+            # 2. Check if the required 'subtasks' key exists
+            if "subtasks" in data and isinstance(data["subtasks"], list):
+                print("Successfully received valid JSON.")
+                return data
+            else:
+                print("JSON received, but 'subtasks' key is missing or wrong format.")
+                
+        except json.JSONDecodeError:
+            print("AI returned invalid JSON syntax. Retrying...")
+        except Exception as e:
+            print(f"Unexpected error during AI generation: {e}")
+
+    # If the loop finishes without returning, we failed 5 times
+    return None
+
 # --- MAIN ENDPOINT ---
 @app.post("/generate")
 async def generate_solar_system(request: GodotTaskRequest):
@@ -61,29 +93,27 @@ async def generate_solar_system(request: GodotTaskRequest):
 
     Nothing else should be sent except this JSON output.
     """
+    # Convert string response to Python dictionary
+    ai_data = get_valid_ai_json(prompt, max_retries=5)
 
-    try:
-        # Request JSON specifically from Gemini
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
+    if ai_data is None:
+    # If we failed all 5 times, return a 500 error to Godot
+        raise HTTPException(
+            status_code=500, 
+            detail="AI failed to generate a valid task structure after 5 attempts."
         )
-        
-        # Convert string response to Python dictionary
-        ai_data = json.loads(response.text)
-        
+    
+    try:
         final_output = validate_and_correct_tasks(
             ai_data, 
             request.parent_id, 
             child_type
         )
-
-        # 3. Send the CORRECTED data back to Godot
         return final_output
 
     except Exception as e:
-        print(f"Error calling Gemini: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error in logic_processor: {e}")
+        raise HTTPException(status_code=500, detail="Error in logic processing script.")
 
 if __name__ == "__main__":
     import uvicorn
