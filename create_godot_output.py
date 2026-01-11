@@ -1,42 +1,39 @@
+import re
 import json
 
 def validate_and_correct_tasks(ai_data, parent_id, child_type):
-    # 1. Convert JSON string to Python List
-    # If ai_data is already a list, this step is skipped
+    # Ensure ai_data is a dictionary (if it's a raw string, parse it)
     if isinstance(ai_data, str):
-        try:
-            tasks = json.loads(ai_data)
-        except json.JSONDecodeError:
-            print("Error: Could not parse AI JSON data.")
-            return None
-    else:
-        tasks = ai_data
-
-    # 2. Find Max Duration for the 0-1 Decimal Calculation
-    # We assume the AI includes a 'duration' number for each task
-    durations = [float(t.get('duration', 1)) for t in tasks]
-    max_duration = max(durations) if durations else 1
-
-    clean_subtasks = []
-
-    # 3. Parse and Correct Information
-    for task in tasks:
-        # Calculate the duration decimal (0-1)
-        raw_dur = float(task.get('duration', 1))
-        duration_factor = round(raw_dur / max_duration, 4)
-
-        # Build the cleaned task (ignoring color as requested)
-        clean_task = {
-            "name": task.get("name", "Unnamed Task"),
-            "description": task.get("description", "No description"),
-            "distance": int(task.get("distance", 1)),
-            "duration_factor": duration_factor # Your 0-1 decimal
-        }
-        clean_subtasks.append(clean_task)
-
-    # 4. Return the structured dictionary for the main file
+        ai_data = json.loads(ai_data)
+    
+    raw_subtasks = ai_data.get("subtasks", [])
+    processed_subtasks = []
+    
+    # 1. First pass: Extract duration as numbers for calculation
+    durations = []
+    for st in raw_subtasks:
+        # Regex to find numbers in strings like "3 days" or "Duration: 5"
+        match = re.search(r"(\d+)", str(st.get("duration", "1")))
+        val = float(match.group(1)) if match else 1.0
+        durations.append(val)
+    
+    # 2. Find max duration to calculate ratio (distance)
+    max_dur = max(durations) if durations else 1.0
+    
+    # 3. Second pass: Build the final objects
+    for i, st in enumerate(raw_subtasks):
+        # Calculate distance (0 to 1 scale)
+        # distance = current_duration / max_duration
+        distance_ratio = durations[i] / max_dur
+        
+        processed_subtasks.append({
+            "name": st.get("name", "Unnamed Task"),
+            "description": st.get("description", "No description provided."),
+            "distance": distance_ratio  # This will be used for orbit radius in Godot
+        })
+        
     return {
-        "subtasks": clean_subtasks,
+        "subtasks": processed_subtasks,
         "parent_id": parent_id,
         "subtasks_type": child_type
     }
