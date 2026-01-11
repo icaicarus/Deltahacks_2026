@@ -46,12 +46,14 @@ def get_valid_ai_json(prompt, max_retries=3):
             
             # New SDK call format
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.5-flash-lite", 
                 contents=types.Part.from_text(text=prompt),
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
                 )
             )
+            
+            
             
             # Parse the text response
             data = json.loads(response.text)
